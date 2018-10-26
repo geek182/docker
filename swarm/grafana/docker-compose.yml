@@ -22,7 +22,7 @@ services:
         - "traefik.port=3000"
         - "traefik.docker.network=proxy"
         - "traefik.frontend.passHostHeader=true"
-        - "traefik.frontend.rule=Host:grafana.cloud.vrbeneficios.io"
+        - "traefik.frontend.rule=Host:grafana.domain.com"
         - "traefik.backend=grafana"
       placement:
         constraints: [ node.role == worker ]
