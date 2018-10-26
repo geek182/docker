@@ -1,0 +1,13 @@
+route:
+    receiver: 'slack'
+
+receivers:
+    - name: 'slack'
+      slack_configs:
+          - send_resolved: true
+            title: "{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}"
+            text: "*Details:* {{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}"
+            username: 'AlertManager'
+            channel: '#alerts'
+            api_url: '#channel'
+            icon_emoji: ':prometheus:'

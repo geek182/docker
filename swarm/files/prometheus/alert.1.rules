@@ -1,0 +1,31 @@
+groups:
+- name: teste
+  rules:
+
+  # Host down por mais de 5 minutos.
+  - alert: host_down
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: page
+    annotations: 
+      summary: "Instance  {{ $labels.instance }} down"
+      description: " {{ $labels.instance }} of job  {{ $labels.job }} has been down for more 1 minute."
+
+  - alert: high_load
+    expr: node_load1 > 2.0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Instance {{ $labels.instance }} load is Higher than 2.0"
+      description: " {{ $labels.instance }} of job {{ $labels.job }} load is higher than 2.0 for more 1 minute."
+
+  - alert: disk_space
+    expr: netdata_disk_space_GB_average{chart="disk_space._",dimension="avail",family="/"} < 5
+    for: 2m
+    labels:
+      severity: page
+    annotations:
+      summary: "Instance {{ $labels.instance }} disk space is lower than 5GB"
+      description: " {{ $labels.instance }} disk space is lower than 5 Gb"

@@ -1,0 +1,114 @@
+version: '3.3'
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.3.1
+    volumes:
+      - ./files/prometheus:/etc/prometheus/
+      - prometheus_data:/var/lib/prometheus
+    command: 
+      - '--web.external-url=http://localhost/prometheus'
+      - '--storage.tsdb.retention=72h'
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9090:9090
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - "traefik.enable=true"
+        - "traefik.port=9090"
+        - "traefik.docker.network=proxy"
+        - "traefik.frontend.passHostHeader=true"
+        - "traefik.frontend.rule=Host:prometheus.domain.com"
+        - "traefik.backend=prometheus"
+      placement:
+        constraints: [node.role == worker]
+
+  cadvisor:
+    image: google/cadvisor
+    hostname: '{{.Node.ID}}'
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 8082:8080
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - "traefik.enable=true"
+        - "traefik.port=8080"
+        - "traefik.frontend.passHostHeader=true"
+        - "traefik.docker.network=proxy"
+        - "traefik.frontend.rule:Path=/"
+        - "traefik.frontend.rule=Host:cadvisor.domain.com"
+        - "traefik.backend=cadvisor"
+      placement:
+        constraints: [node.role == worker]
+
+
+  node-exporter:
+    image: linuxtips/node-exporter_alpine
+    hostname: '{{.Node.ID}}'
+    volumes:
+      - /proc:/usr/proc
+      - /sys:/usr/sys
+      - /:/rootfs
+    deploy:
+      mode: global
+    networks:
+      - proxy
+    ports:
+      - 9100:9100
+
+  alertmanager:
+    image: linuxtips/alertmanager_alpine
+    volumes:
+      - ./files/alertmanager/:/etc/alertmanager
+    networks:
+      - proxy
+    ports:
+      - 9093:9093
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - "traefik.enable=true"
+        - "traefik.port=9093"
+        - "traefik.docker.network=proxy"
+        - "traefik.frontend.rule=Path:/alertmanager"
+        - "traefik.frontend.rule=Host:alertmanager.domain.com"
+        - "traefik.backend=alertmanager"
+      placement:
+        constraints: [node.role == worker]
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+    prometheus_data:
